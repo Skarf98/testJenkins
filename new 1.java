@@ -8,7 +8,7 @@ public class CasePDFGenerate{
     @AuraEnabled(cacheable=true) 
         public static Case tCase(Id recordId) { 
             
-            Case c = [SELECT Id,CaseNumber FROM Case WHERE Id=:recordId];
-            return c;
+            Case cs = [SELECT Id,CaseNumber FROM Case WHERE Id=:recordId];
+            return cs;
        } 
 }
