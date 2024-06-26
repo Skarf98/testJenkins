@@ -1,0 +1,63 @@
+public class CreaPDFController  {
+    public Moduli_HSE__c modulo { get; set; }
+    public String moduloId { get; set; }
+    
+    public CreaPDFController() {
+
+        // Recupera l'ID del record passato come parametro nella query string
+        moduloId = ApexPages.currentPage().getParameters().get('recordId');
+        System.debug('CreaPDFController | ID del modulo HSE: ' + moduloId);
+
+        // Carica il record Moduli_HSE__c
+        modulo = [SELECT Name, Impianto__c FROM Moduli_HSE__c WHERE Id = :moduloId];
+        // Stampa un messaggio di debug
+        System.debug('Dettagli del modulo HSE: ' + modulo);
+
+        // Genera il PDF solo se non esiste già
+        if(!pdfAlreadyExists(moduloId)) {
+            generarePDF();
+        } 
+    }
+    
+    
+    private Boolean pdfAlreadyExists(Id recordId) {
+        // Verifica se esiste già un ContentDocumentLink per questo record
+        Integer count = [SELECT COUNT() FROM ContentDocumentLink WHERE LinkedEntityId = :recordId];
+        return count > 0;
+    }
+    
+    private void generarePDF() {
+        PageReference pdfPage = Page.CreaPDF;
+        pdfPage.getParameters().put('id', moduloId);
+        
+        Blob pdfBlob;
+        try {
+            pdfBlob = pdfPage.getContentAsPDF();
+        } catch (VisualforceException e) {
+            System.debug('Errore nella generazione del PDF: ' + e.getMessage());
+            return;
+        }
+        
+        ContentVersion contentVersion = new ContentVersion();
+        contentVersion.Title = 'Modulo_HSE_PDF_' + moduloId;
+        contentVersion.PathOnClient = 'Modulo_HSE_PDF_' + moduloId + '.pdf';
+        contentVersion.VersionData = pdfBlob;
+        insert contentVersion;
+        System.debug('ID contentVersion: ' + contentVersion.id);
+
+        
+        ContentDocumentLink contentLink = new ContentDocumentLink();
+        contentLink.ContentDocumentId = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :contentVersion.Id].ContentDocumentId;
+        contentLink.LinkedEntityId = moduloId;
+        contentLink.ShareType = 'V';
+        insert contentLink;
+        System.debug('ID contentLink: ' + contentLink.id);
+
+    }
+
+    public void sendReport(){
+        System.debug('Send Report');
+    }
+}
+
+___________________________
